@@ -1,8 +1,8 @@
 {
-    "name": "jtclark/monolog-viewer",
+    "name": "davtur19/monolog-viewer",
     "description": "Very simple viewer of monolog JSON formatted log files",
     "require": {
-        "php": "^7.2||^8.0",
+        "php": "^8.3",
         "twig/twig": "^2.0||^3.0",
         "ext-json": "*",
         "jimmiw/php-time-ago": "^3.1"
@@ -16,7 +16,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Jtclark\\": "src"
+            "davtur19\\": "src"
         }
     }
 }
