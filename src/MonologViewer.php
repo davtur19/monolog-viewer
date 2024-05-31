@@ -165,6 +165,9 @@ class MonologViewer
         if (isset($extra['day'])) {
             $context['search']['day'] = $extra['day'];
         }
+        if (isset($extra['stripe'])) {
+            $context['search']['stripe'] = $extra['stripe'];
+        }
 
         //var_export($logs);
         $template = !empty($this->settings['template']) ? $this->settings['template'] : 'log.twig';
