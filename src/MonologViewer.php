@@ -80,8 +80,7 @@ class MonologViewer
 
         $templates_dir = !empty($this->settings['templates_dir']) ? $this->settings['templates_dir'] : __DIR__ . '/templates';
         $loader = new FilesystemLoader($templates_dir);
-        $twig = new Environment($loader, [//'debug' => true,
-        ]);
+        $twig = new Environment($loader);
 
         $twig->addFilter(new TwigFilter('ago', function ($dateTime)
         {
@@ -109,45 +108,53 @@ class MonologViewer
             };
         }));
 
-        $lines_read = array_reverse(explode("\n", file_get_contents($logPath)));
-        // tail è una funzione lentissima, si fa molto prima a leggere tutto il file...
-        /*if ($lines === null) {
-            $lines_read = array_reverse(explode("\n", file_get_contents($logPath)));
-        } else {
-            $lines_read = array_reverse(explode("\n", $this->tail($logPath, $lines)));
-        }*/
-        $n_lines = 0;
+        // open file
+        $handle = fopen($logPath, "r");
+        if ($handle === false) {
+            die('Could not open log file.');
+        }
+
         $logs = [];
-        foreach ($lines_read as $line) {
+        $n_lines = 0;
+
+        // read the file line by line to reduce memory consumption
+        while (($line = fgets($handle)) !== false) {
             if ($n_lines == $lines) {
                 break;
             }
 
-            if (!$line) {
-                continue;
-            }
-
             $line = trim($line);
 
+            // JSON decode
             $json = json_decode($line, true);
             if ($json === null) {
                 echo json_last_error_msg() . PHP_EOL;
-                die('Could not read log line: ' . $line);
+                continue; // skip invalid lines
             }
 
-            if (strtolower($logLevelFilter ?? '') && strtolower($json['level_name']) != strtolower($logLevelFilter ?? '')) {
+            // Filter logs by criteria
+            if ($logLevelFilter && strtolower($json['level_name']) != strtolower($logLevelFilter)) {
                 continue;
             }
-            if ($supportCode && $json['extra']['uid'] != $supportCode) {
+            if ($supportCode && (!isset($json['extra']['uid']) || $json['extra']['uid'] != $supportCode)) {
                 continue;
             }
             if ($search && !str_contains($line, $search)) {
                 continue;
             }
 
-            $n_lines++;
             $logs[] = $json;
+            $n_lines++;
+
+            // free the variable to reduce memory usage
+            unset($json);
         }
+
+        // close file
+        fclose($handle);
+
+        // force garbage collection to retrieve unused memory
+        // gc_collect_cycles();
 
         $context = [
             'logs'   => $logs,
@@ -158,7 +165,8 @@ class MonologViewer
                 'lines'  => $lines
             ]
         ];
-        // setto extra per usare l'interfaccia correttamente
+
+        // extra parameters
         if (isset($extra['beta'])) {
             $context['search']['beta'] = $extra['beta'];
         }
@@ -169,9 +177,13 @@ class MonologViewer
             $context['search']['stripe'] = $extra['stripe'];
         }
 
-        //var_export($logs);
+        // rendering template
         $template = !empty($this->settings['template']) ? $this->settings['template'] : 'log.twig';
         echo $twig->render($template, $context);
+
+        // Unset variables to free up additional memory
+        unset($logs, $context);
+        //gc_collect_cycles();
     }
 
     /**
