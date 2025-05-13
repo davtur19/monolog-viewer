@@ -66,7 +66,7 @@ class MonologViewer
      * @throws RuntimeError
      * @throws SyntaxError
      */
-    public function render(int $lines = 100, string $logLevelFilter = null, string $supportCode = null, string $search = null, $extra = null): void {
+    public function render(int $lines = 100, string|null $logLevelFilter = null, string|null $supportCode = null, string|null $search = null, $extra = null): void {
         $logPath = $this->settings['path'];
 
         if ($logLevelFilter === 'all') {
